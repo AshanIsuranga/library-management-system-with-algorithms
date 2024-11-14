@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <style>
+        .late-fee { color: red; }
+        .return-time { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Library</h1>
+    <p>You are logged in as: <%= username %></p>
+
+    <% if (!isAdmin) { %>
+        <h2>Your Borrowed Books</h2>
+        <% if (borrowedBooks.length > 0) { %>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Borrowed At</th>
+                        <th>Return By</th>
+                        <th>Late Fees</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% borrowedBooks.forEach(borrowed => { %>
+                        <tr>
+                            <td><%= borrowed.bookId.title %></td>
+                            <td><%= borrowed.borrowedAt.toLocaleString() %></td>
+                            <td class="return-time"><%= borrowed.returnBy.toLocaleString() %></td>
+                            <td class="late-fee">
+                                $<%= calculateLateFees(borrowed.returnBy) %>
+                            </td>
+                            <td>
+                                <form action="/books/<%= borrowed.bookId._id %>/return" method="POST">
+                                    <button type="submit">Return</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        <% } else { %>
+            <p>You haven't borrowed any books yet.</p>
+        <% } %>
+    <% } %>
+
+    <% if (isAdmin) { %>
+        <p><a href="/admin">Go to Admin Dashboard</a></p>
+    <% } %>
+    <p><a href="/books">View Books</a></p>
+    <p><a href="/logout">Logout</a></p>
+
+    <script>
+        // Refresh page every minute to update late fees
+        setInterval(() => {
+            location.reload();
+        }, 60000);
+    </script>
+</body>
+</html>

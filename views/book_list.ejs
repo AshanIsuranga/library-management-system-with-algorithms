@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book List</title>
+    <style>
+        .book-actions { margin-top: 10px; }
+        .late-fee { color: red; }
+        .queue-info { color: #666; font-size: 0.9em; }
+        .reservation-count { 
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+        }
+        .filter-section {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f4f4f4;
+        }
+        .search-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Book List</h1>
+
+    <!-- Search and Filter Section -->
+    <div class="filter-section">
+        <form action="/books" method="GET">
+            <div class="search-section">
+                <input type="text" id="title" name="title" value="<%= searchTitle %>" 
+                       placeholder="Enter book title">
+                <button type="submit">Search</button>
+            </div>
+
+            <div>
+                <label for="category">Filter by Category:</label>
+                <select id="category" name="category">
+                    <option value="">All Categories</option>
+                    <option value="Fantasy" <%= selectedCategory === 'Fantasy' ? 'selected' : '' %>>Fantasy</option>
+                    <option value="Science Fiction" <%= selectedCategory === 'Science Fiction' ? 'selected' : '' %>>Science Fiction</option>
+                    <option value="Romance" <%= selectedCategory === 'Romance' ? 'selected' : '' %>>Romance</option>
+                    <option value="Novel" <%= selectedCategory === 'Novel' ? 'selected' : '' %>>Novel</option>
+                    <option value="Educational" <%= selectedCategory === 'Educational' ? 'selected' : '' %>>Educational</option>
+                    <option value="Historical" <%= selectedCategory === 'Historical' ? 'selected' : '' %>>Historical</option>
+                    <option value="Biography" <%= selectedCategory === 'Biography' ? 'selected' : '' %>>Biography</option>
+                    <option value="Other" <%= selectedCategory === 'Other' ? 'selected' : '' %>>Other</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="author">Filter by Author:</label>
+                <select id="author" name="author">
+                    <option value="">All Authors</option>
+                    <% authors.forEach(auth => { %>
+                        <option value="<%= auth %>" 
+                                <%= selectedAuthor === auth ? 'selected' : '' %>>
+                            <%= auth %>
+                        </option>
+                    <% }) %>
+                </select>
+            </div>
+
+            <div>
+                <label>
+                    <input type="checkbox" name="mostBorrowed" value="true"
+                           <%= mostBorrowedChecked ? 'checked' : '' %>>
+                    Most Borrowed Books
+                </label>
+            </div>
+
+            <button type="submit">Apply Filters</button>
+            <a href="/books">Clear Filters</a>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Borrow Count</th>
+                <th>Reservations</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% books.forEach(book => { %>
+                <tr>
+                    <td><%= book.title %></td>
+                    <td><%= book.author %></td>
+                    <td><%= book.category %></td>
+                    <td>
+                        <% if (book.isAvailable) { %>
+                            Available
+                        <% } else { %>
+                            Borrowed by <%= book.currentBorrower.username %>
+                        <% } %>
+                    </td>
+                    <td><%= book.borrowCount %></td>
+                    <td>
+                        <span class="reservation-count">
+                            <%= book.reservationCount %> in queue
+                        </span>
+                        <% if (book.reservationQueue.some(r => r.userId.equals(user._id))) { %>
+                            <div class="queue-info">
+                                Your position: <%= book.getQueuePosition(user._id) %>
+                            </div>
+                        <% } %>
+                    </td>
+                    <td class="book-actions">
+                        <% if (book.isAvailable) { %>
+                            <form action="/books/<%= book._id %>/borrow" method="POST">
+                                <button type="submit">Borrow</button>
+                            </form>
+                        <% } else if (!book.currentBorrower.equals(user._id) && 
+                                    !book.reservationQueue.some(r => r.userId.equals(user._id))) { %>
+                            <form action="/books/<%= book._id %>/reserve" method="POST">
+                                <button type="submit">Reserve</button>
+                            </form>
+                        <% } else if (book.currentBorrower.equals(user._id)) { %>
+                            <form action="/books/<%= book._id %>/return" method="POST">
+                                <button type="submit">Return</button>
+                            </form>
+                        <% } else { %>
+                            Already Reserved
+                        <% } %>
+                    </td>
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+
+    <!-- Add this section after the table -->
+    <div class="pagination">
+        <% if (hasPrevPage) { %>
+            <a href="/books?page=<%= currentPage - 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedAuthor ? '&author=' + selectedAuthor : '' %><%= searchTitle ? '&title=' + searchTitle : '' %><%= mostBorrowedChecked ? '&mostBorrowed=true' : '' %>">Previous</a>
+        <% } %>
+        
+        <span>Page <%= currentPage %> of <%= totalPages %></span>
+        
+        <% if (hasNextPage) { %>
+            <a href="/books?page=<%= currentPage + 1 %><%= selectedCategory ? '&category=' + selectedCategory : '' %><%= selectedAuthor ? '&author=' + selectedAuthor : '' %><%= searchTitle ? '&title=' + searchTitle : '' %><%= mostBorrowedChecked ? '&mostBorrowed=true' : '' %>">Next</a>
+        <% } %>
+    </div>
+
+    <% if (isAdmin) { %>
+        <p><a href="/admin/add-book">Add New Book</a></p>
+        <p><a href="/admin">Back to Admin Dashboard</a></p>
+    <% } else { %>
+        <p><a href="/">Back to Home</a></p>
+    <% } %>
+</body>
+</html>
